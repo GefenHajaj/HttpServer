@@ -79,7 +79,6 @@ class HttpServer(GeneralServer):
     Simple HTTP server that can handle css, html, JS and jpeg.
     """
 
-    root_dir = ROOT_DIR
     ok_response = "HTTP/1.1 200 OK\r\n"
     not_found_response = "HTTP/1.1 404 Not Found"
     internal_server_error = "HTTP/1.1 500 Internal Server Error"
@@ -90,8 +89,9 @@ class HttpServer(GeneralServer):
     ct_js = "Content-Type: text/javascript; charset=utf-8\r\n"  # .js
     ct_css = "Content-Type: text/css\r\n"  # .css
 
-    def __init__(self, ip, port):
+    def __init__(self, ip, port, root_dir):
         super(HttpServer, self).__init__(ip, port)
+        self.root_dir = root_dir
 
     def run_server(self):
         # Starting connection with client
@@ -112,12 +112,16 @@ class HttpServer(GeneralServer):
 
             if url_file[0]:
                 # making the url itself into something readable by WINDOWS.
-                url_file = ROOT_DIR + os.path.sep + HttpServer.\
+                url_file = self.root_dir + os.path.sep + HttpServer.\
                     make_url_address(url_file[1]) if url_file[1] != '/' \
                     else url_file[1]
 
                 response = self.create_response(url_file)
-                client_socket.send(response)
+
+                try:
+                    client_socket.send(response)
+                except socket.timeout:
+                    break
 
             else:
                 print("invalid request")
@@ -181,7 +185,7 @@ class HttpServer(GeneralServer):
 
         # checking - maybe index?
         if file_path == '/':
-            file_path = ROOT_DIR + os.path.sep + "index.html"
+            file_path = self.root_dir + os.path.sep + "index.html"
 
         # creating http responses
         if check_if_file_exists(file_path):
@@ -280,7 +284,7 @@ def get_content_file(file_path):
 
 
 def main():
-    my_server = HttpServer(IP, PORT)
+    my_server = HttpServer(IP, PORT, ROOT_DIR)
     # able to have endless connections!!!
     while True:
         my_server.run_server()

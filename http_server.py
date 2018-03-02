@@ -33,6 +33,7 @@ IP = '0.0.0.0'
 PORT = 55558
 ROOT_DIR = 'D:' + os.path.sep + 'wwwroot'
 REQUEST_LENGTH = 1024  # bytes
+SOCKET_TIMEOUT = 1  # seconds to wait for sending/receiving
 
 
 class GeneralServer(ABC):
@@ -98,13 +99,13 @@ class HttpServer(GeneralServer):
         print("Starting a new connection...")
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_socket.bind((IP, PORT))
-        server_socket.listen(10)
+        server_socket.listen(0)
         # initial connection:
         client_socket, address = server_socket.accept()
-        server_socket.settimeout(1)
+        server_socket.settimeout(SOCKET_TIMEOUT)
 
         while True:  # make sure to get out of here somehow
-            client_socket.settimeout(1)
+            client_socket.settimeout(SOCKET_TIMEOUT)
             print("connected to {}".format(str(address)))
 
             print("waiting for request...")

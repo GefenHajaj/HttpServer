@@ -22,7 +22,7 @@ Date:
 27.02.2018
 
 Version:
-1.1
+1.2
 """
 
 import socket
@@ -30,7 +30,7 @@ import os.path
 from abc import ABC, abstractmethod
 
 IP = '0.0.0.0'
-PORT = 55558
+PORT = 55555
 ROOT_DIR = 'D:' + os.path.sep + 'wwwroot'
 REQUEST_LENGTH = 1024  # bytes
 SOCKET_TIMEOUT = 1  # seconds to wait for sending/receiving
@@ -90,11 +90,25 @@ class HttpServer(GeneralServer):
     ct_js = "Content-Type: text/javascript; charset=utf-8\r\n"  # .js
     ct_css = "Content-Type: text/css\r\n"  # .css
 
+    # The main site page - usually index.html
+    main_page_name = "index.html"
+
     def __init__(self, ip, port, root_dir):
         super(HttpServer, self).__init__(ip, port)
         self.root_dir = root_dir
 
     def run_server(self):
+        """
+        This func is responsible for the main running and maintenance of the
+        server and the connection (one connection at a time!).
+
+        It gets the request, prepares a response and sends it.
+
+        How convenient!
+
+        :return: None.
+        """
+
         # Starting connection with client
         print("Starting a new connection...")
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -154,7 +168,7 @@ class HttpServer(GeneralServer):
             If not - returns an empty string.
 
             :param client_socket: socket.socket
-            :return: str
+            :return: tuple: (int, int) or (int, str)
             """
 
         try:
@@ -181,12 +195,12 @@ class HttpServer(GeneralServer):
             This func gets a url from the GET request and returns a valid
             response.
             :param file_path: str
-            :return: str
+            :return: bytes
             """
 
         # checking - maybe index?
         if file_path == '/':
-            file_path = self.root_dir + os.path.sep + "index.html"
+            file_path = self.root_dir + os.path.sep + HttpServer.main_page_name
 
         # creating http responses
         if check_if_file_exists(file_path):
@@ -200,15 +214,22 @@ class HttpServer(GeneralServer):
             http_response += "Content-Length: {}".format(len(data)) + "\r\n"
             http_response = HttpServer.add_content_type(http_response,
                                                         file_path)
-            # finishing up:
-            http_response += "\r\n"
-            # content itself - the data
-            http_response = http_response.encode()
-            http_response += data
 
-            return http_response
+            # Checking that the http_response is not an empty string - that
+            # means that a file type that we don't support yet was requested.
+            if http_response:
+
+                # finishing up:
+                http_response += "\r\n"
+                # content itself - the data
+                http_response = http_response.encode()
+                http_response += data
+
+                return http_response
+            else:
+                return HttpServer.internal_server_error.encode()
         else:
-            return HttpServer.not_found_response
+            return HttpServer.not_found_response.encode()
             # This is where we would add a cool 404 error page...
 
     @staticmethod
@@ -216,12 +237,11 @@ class HttpServer(GeneralServer):
         """
             Gets a (half-built) http response in the right time of building
             and adds a Content-Type header to it.
-            Of courese, we nned the path to the file, as well, to know the
+            Of course, we need the path to the file, as well, to know the
             contents type...
-            It returns the half-built http_response with that header.
+            It the half-built http_response with that header.
 
-            For now: if we don't know the type of file we want, we just don't
-            add the Content-Type line.
+            If we don't know the type of file we would return an empty string.
 
             :param http_response: str
             :param file_path: str
@@ -242,7 +262,7 @@ class HttpServer(GeneralServer):
             return http_response + HttpServer.ct_css
 
         # If nothing we know...
-        return http_response
+        return ""
 
     @staticmethod
     def make_url_address(url):
@@ -264,10 +284,7 @@ def check_if_file_exists(file):
     :return: bool
     """
 
-    if os.path.isfile(file):
-        return True
-
-    return False
+    return os.path.isfile(file)
 
 
 def get_content_file(file_path):

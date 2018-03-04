@@ -1,3 +1,7 @@
+"""
+Part of http_server.py
+"""
+
 import socket
 import os.path
 from GeneralServer import GeneralServer

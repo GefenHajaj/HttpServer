@@ -1,4 +1,7 @@
-import os.path
+"""
+Part of http_server.py
+"""
+
 from abc import ABC, abstractmethod
 
 

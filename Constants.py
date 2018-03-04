@@ -1,4 +1,8 @@
-import os
+"""
+Part of http_server.py
+"""
+
+import os.path
 
 IP = '0.0.0.0'
 PORT = 55556

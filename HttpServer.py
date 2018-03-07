@@ -14,8 +14,10 @@ class HttpServer(GeneralServer):
     """
 
     ok_response = "HTTP/1.1 200 OK\r\n"
-    not_found_response = "HTTP/1.1 404 Not Found"
-    internal_server_error = "HTTP/1.1 500 Internal Server Error"
+    not_found_response = "HTTP/1.1 404 Not Found\r\n"
+    internal_server_error = "HTTP/1.1 500 Internal Server Error\r\n"
+    forbidden_response = "HTTP/1.1 403 Forbidden\r\n"
+    moved_temporarily_response = "HTTP/1.1 302 Found\r\n"
 
     # Different content types:
     ct_txt_html = "Content-Type: text/html; charset=utf-8\r\n"  # .txt or .html
@@ -139,32 +141,49 @@ class HttpServer(GeneralServer):
         if file_path == '/':
             file_path = self.root_dir + os.path.sep + HttpServer.main_page_name
 
+        print(file_path)
+
         # creating http responses
-        if check_if_file_exists(file_path):
+        if os.path.isfile(file_path):
 
-            data = get_content_file(file_path)
+            if os.path.abspath(file_path) not in FORBIDDEN and \
+                    not os.path.abspath(file_path) in MOVED_TEMP.keys():
+                data = get_content_file(file_path)
 
-            # response line:
-            http_response = HttpServer.ok_response
+                # response line:
+                http_response = HttpServer.ok_response
 
-            # headers:
-            http_response += "Content-Length: {}".format(len(data)) + "\r\n"
-            http_response = HttpServer.add_content_type(http_response,
-                                                        file_path)
+                # headers:
+                http_response += "Content-Length: {}".format(len(data)) + "\r\n"
+                http_response = HttpServer.add_content_type(http_response,
+                                                            file_path)
 
-            # Checking that the http_response is not an empty string - that
-            # means that a file type that we don't support yet was requested.
-            if http_response:
+                # Checking that the http_response is not an empty string - that
+                # means that a file type that we don't support yet was
+                # requested.
+                if http_response:
 
-                # finishing up:
-                http_response += "\r\n"
-                # content itself - the data
-                http_response = http_response.encode()
-                http_response += data
+                    # finishing up:
+                    http_response += "\r\n"
+                    # content itself - the data
+                    http_response = http_response.encode()
+                    http_response += data
 
-                return http_response
-            else:
-                return HttpServer.internal_server_error.encode()
+                    return http_response
+                else:
+                    return HttpServer.internal_server_error.encode()
+
+            elif os.path.abspath(file_path) in FORBIDDEN:
+                return HttpServer.forbidden_response.encode()
+
+        elif file_path in MOVED_TEMP.keys():
+            print(file_path)
+            http_response = HttpServer.moved_temporarily_response
+            http_response += "Location: " + \
+                             MOVED_TEMP[file_path] + "\r\n"
+            print(http_response)
+            return http_response.encode()
+
         else:
             return HttpServer.not_found_response.encode()
             # This is where we would add a cool 404 error page...
@@ -211,17 +230,6 @@ class HttpServer(GeneralServer):
         """
 
         return url.replace("/", os.path.sep)
-
-
-# Some general methods:
-def check_if_file_exists(file):
-    """
-    checks if files exists. returns True or False accordingly.
-    :param file: str (path to file)
-    :return: bool
-    """
-
-    return os.path.isfile(file)
 
 
 def get_content_file(file_path):

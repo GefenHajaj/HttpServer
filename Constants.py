@@ -17,10 +17,9 @@ FORBIDDEN = (
     # Example: os.path.abspath("file.txt")
 )
 
-# Files that moved temporarly.
-# Key: abspath of file that moved
+# Files that moved temporarily.
+# Key: path of file expected (add '/' in the beginning)
 # Value: the new abspath of file
 MOVED_TEMP = {
-    # os.path.abspath(abstract.jpg): c:\abstract.jpg,
-    r'C:\Users\gefen\PycharmProjects\NewProjects\HttpServer\webroot\\index.ori': 'index.html'
+    # EXAMPLE: '/index.ori': '\\'
 }

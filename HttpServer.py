@@ -65,12 +65,8 @@ class HttpServer(GeneralServer):
             url_file = self.get_request(client_socket)
 
             if url_file[0]:
-                # making the url itself into something readable by WINDOWS.
-                url_file = self.root_dir + os.path.sep + HttpServer.\
-                    make_url_address(url_file[1]) if url_file[1] != '/' \
-                    else url_file[1]
 
-                response = self.create_response(url_file)
+                response = self.create_response(url_file[1])
 
                 try:
                     client_socket.send(response)
@@ -129,32 +125,35 @@ class HttpServer(GeneralServer):
             print("socket timeout")
             return 0, 0
 
-    def create_response(self, file_path):
+    def create_response(self, my_file_path):
         """
-            This func gets a url from the GET request and returns a valid
-            response.
-            :param file_path: str
+            This func gets a url (path exactly from the url) from the GET
+            request and returns a valid response.
+            :param my_file_path: str
             :return: bytes
             """
+
+        # making the url itself into something readable by WINDOWS.
+        file_path = self.root_dir + os.path.sep + HttpServer. \
+            make_url_address(my_file_path) if my_file_path != '/' \
+            else my_file_path
 
         # checking - maybe index?
         if file_path == '/':
             file_path = self.root_dir + os.path.sep + HttpServer.main_page_name
 
-        print(file_path)
-
-        # creating http responses
+        # creating http responses:
         if os.path.isfile(file_path):
 
-            if os.path.abspath(file_path) not in FORBIDDEN and \
-                    not os.path.abspath(file_path) in MOVED_TEMP.keys():
+            if os.path.abspath(file_path) not in FORBIDDEN:
                 data = get_content_file(file_path)
 
                 # response line:
                 http_response = HttpServer.ok_response
 
                 # headers:
-                http_response += "Content-Length: {}".format(len(data)) + "\r\n"
+                http_response += "Content-Length: {}".format(len(data)) + \
+                                 "\r\n"
                 http_response = HttpServer.add_content_type(http_response,
                                                             file_path)
 
@@ -173,15 +172,14 @@ class HttpServer(GeneralServer):
                 else:
                     return HttpServer.internal_server_error.encode()
 
-            elif os.path.abspath(file_path) in FORBIDDEN:
+            # If the user does not have any access to this file - forbidden
+            else:
                 return HttpServer.forbidden_response.encode()
 
-        elif file_path in MOVED_TEMP.keys():
-            print(file_path)
+        # Check if the file moved:
+        elif my_file_path in MOVED_TEMP.keys():
             http_response = HttpServer.moved_temporarily_response
-            http_response += "Location: " + \
-                             MOVED_TEMP[file_path] + "\r\n"
-            print(http_response)
+            http_response += "Location: " + MOVED_TEMP[my_file_path] + "\r\n"
             return http_response.encode()
 
         else:
